@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+**/.idea/
+
+**/data/xhj_data.tsv
+
 # Distribution / packaging
 .Python
 build/
