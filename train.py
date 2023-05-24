@@ -5,10 +5,11 @@
 # @File    : train.py
 # @Software: PyCharm
 import time, os
+import pickle
 import tensorflow as tf
 from transformer import Transformer
 from data_processing import load_data, DataGenerator, tokenize
-from utils import CustomizedSchedule, create_masks
+from utils import create_masks
 from tqdm import tqdm
 import config
 
@@ -18,7 +19,7 @@ d_model = config.d_model
 dff = config.dff
 num_heads = config.num_heads
 dropout_rate = config.dropout_rate
-learning_rate = CustomizedSchedule(d_model)
+learning_rate = config.learning_rate
 beta_1 = config.beta_1
 beta_2 = config.beta_2
 batch_size = config.batch_size
@@ -26,11 +27,10 @@ EPOCHS = config.n_epoch
 
 # 加载数据
 inp_text, tar_text = load_data(file_path="./data/xhj_data.tsv", num_samples=config.num_samples)
-inp_seq, tar_seq, tokenizer, max_length_inp, max_length_tar = tokenize(inp_text, tar_text)
-# vocab_size = len(tokenizer.word_index) + 1  # 词汇表大小
-vocab_size = config.vocab_size
+inp_seq, tar_seq, _, max_length_inp, max_length_tar = tokenize(inp_text, tar_text)
+vocab_size = pickle.load(open(config.vocab_path, 'rb'))['vocab_size']  # 词汇表大小
 
-train_dataset = DataGenerator(tokenizer_data=(inp_seq, tar_seq, tokenizer), batch_size=config.batch_size)
+train_dataset = DataGenerator(tokenizer_data=(inp_seq, tar_seq), batch_size=config.batch_size)
 input_vocab_size = vocab_size
 target_vocab_size = vocab_size
 
@@ -38,9 +38,11 @@ target_vocab_size = vocab_size
 transformer = Transformer(num_layers, d_model, num_heads, dff, input_vocab_size, target_vocab_size,
                           pe_input=max_length_inp, pe_target=max_length_tar, rate=dropout_rate)
 
+
 # 定义优化器和损失函数
 optimizer = tf.keras.optimizers.Adam(learning_rate, beta_1, beta_2, epsilon=1e-9)
-loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+
 
 # 定义评价指标
 train_loss = tf.keras.metrics.Mean(name='train_loss')
@@ -95,23 +97,26 @@ def train_step(inp, tar):
 
 for epoch in range(EPOCHS):
     start = time.time()
-
     train_loss.reset_states()
     train_accuracy.reset_states()
 
-    progress_bar = tqdm(train_dataset, desc=f'Epoch {epoch + 1}/{EPOCHS}')
+    progress = tqdm(
+        train_dataset,
+        total=len(train_dataset),
+        desc=f'Epoch {epoch + 1}/{EPOCHS}',
+        unit_scale=True
+    )
 
-    for (batch, (inp, tar)) in enumerate(train_dataset):
+    for (batch, (inp, tar)) in enumerate(progress):
         train_step(inp, tar)
 
         if batch % 100 == 0:
-            progress_bar.set_postfix({'Loss': train_loss.result().numpy(),
-                                      'Accuracy': train_accuracy.result().numpy()}, refresh=True)
+            progress.set_postfix({'Loss': train_loss.result().numpy(),
+                                                     'Accuracy': train_accuracy.result().numpy()})
 
-    progress_bar.close()
-    epoch_time = time.time() - start
+    progress.close()
 
-    progress_bar.set_description('Epoch {}/{} - Loss: {:.4f} - Accuracy: {:.4f} - Time: {:.2f}s'.format(
-        epoch + 1, EPOCHS, train_loss.result(), train_accuracy.result(), epoch_time))
-    progress_bar.close()
+    progress.write('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(
+        epoch + 1, train_loss.result(), train_accuracy.result()))
+    progress.write(f'Time taken for 1 epoch: {time.time() - start} secs\n')
     ckpt.save(file_prefix=checkpoint_path)
