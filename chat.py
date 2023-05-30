@@ -5,8 +5,9 @@
 # @File    : chat.py
 # @Software: PyCharm
 import os
-import jieba
+import time
 import pickle
+import gradio as gr
 import tensorflow as tf
 from transformer import Transformer
 from data_processing import clean_text
@@ -23,16 +24,9 @@ idx2word = vocab_data["idx2word"]
 transformer = Transformer(**config.model_params)
 optimizer = tf.keras.optimizers.Adam(**config.optimizer_params)
 
-# 模型参数恢复
-checkpoint = tf.train.Checkpoint(transformer=transformer, optimizer=optimizer)
-
-checkpoint.restore(tf.train.latest_checkpoint(config.BASE_MODEL_DIR))  # 恢复最新的检查点
-
 
 def preprocess_input(user_input, word2idx):
-    """
-    预处理输入
-    """
+    """预处理输入"""
     proprecessed_input = clean_text(user_input)
     input_vector = [word2idx.get(word, word2idx["<unk>"]) for word in proprecessed_input.split()]
     input_vector = tf.keras.preprocessing.sequence.pad_sequences([input_vector],
@@ -45,14 +39,14 @@ def preprocess_input(user_input, word2idx):
 
 
 def generate_response(input_vector, transformer, word2idx, idx2word):
-    """
-    生成回复
-    """
+    """生成回复"""
     output = tf.expand_dims([word2idx["<start>"]], axis=0)
-    for _ in range(config.model_params["pe_target"]):
+    for _ in range(10):
         enc_padding_mask, combined_mask, dec_padding_mask = create_masks(input_vector, output)
         predictions, _ = transformer(input_vector, output, False,
                                      enc_padding_mask, combined_mask, dec_padding_mask)
+        # 模型参数恢复
+        transformer.load_weights(os.path.join(config.BASE_MODEL_DIR, 'transformer_weights.h5'))
         predictions = predictions[:, -1, :]
         predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
         if tf.equal(predicted_id, word2idx["<end>"]):
@@ -65,7 +59,22 @@ def generate_response(input_vector, transformer, word2idx, idx2word):
     return "".join(output)
 
 
-user_input = input("User: ")
-input_vector = preprocess_input(user_input, word2idx)
-response = generate_response(input_vector, transformer, word2idx, idx2word)
-print("Bot: ", response)
+with gr.Blocks() as demo:
+    chatbot = gr.Chatbot()
+    msg = gr.Textbox()
+    clear = gr.Button("Clear")
+
+
+    def respond(message, chat_history):
+        input_vector = preprocess_input(message, word2idx)
+        bot_message = generate_response(input_vector, transformer, word2idx, idx2word)
+        chat_history.append((message, bot_message))
+        time.sleep(1)
+        return "", chat_history
+
+
+    msg.submit(respond, [msg, chatbot], [msg, chatbot])
+    clear.click(lambda: None, None, chatbot, queue=False)
+
+if __name__ == '__main__':
+    demo.launch()

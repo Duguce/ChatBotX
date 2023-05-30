@@ -4,8 +4,6 @@
 # @Time    : 2023/5/19 19:01
 # @File    : seq2seq_model.py.py
 # @Software: PyCharm
-from typing import Any, Dict
-
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -246,7 +244,7 @@ class Decoder(keras.layers.Layer):
             seq_len, self.maximum_position_encoding,
             "seq_len should be less than or equal to self.maximum_position_encoding"
         )
-        attention_weights: dict[str, Any] = {}  # 注意力权重
+        attention_weights = {}  # 注意力权重 # 注意力权重
         x = self.embedding(x)  # 词嵌入
         x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))  # 乘以根号d_model
         x = self.pos_encoding(x)  # 位置编码

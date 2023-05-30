@@ -5,7 +5,6 @@
 # @File    : train.py
 # @Software: PyCharm
 import time, os
-import pickle
 import tensorflow as tf
 from transformer import Transformer
 from data_processing import load_data, DataGenerator, tokenize
@@ -29,16 +28,6 @@ loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 # 定义评价指标
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
-
-# 模型保存
-checkpoint_path = config.BASE_MODEL_DIR
-if not os.path.exists(checkpoint_path):
-    os.mkdir(checkpoint_path)
-
-checkpoint_prefix = os.path.join(checkpoint_path, "ckpt")
-checkpoint = tf.train.Checkpoint(transformer=transformer, optimizer=optimizer)
-
-checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path))  # 恢复最新的检查点
 
 
 def loss_function(real, pred):
@@ -105,4 +94,4 @@ for epoch in range(EPOCHS):
     progress.write('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(
         epoch + 1, train_loss.result(), train_accuracy.result()))
     progress.write(f'Time taken for 1 epoch: {time.time() - start} secs\n')
-    checkpoint.save(file_prefix=checkpoint_prefix)
+    transformer.save(os.path.join(config.BASE_MODEL_DIR, 'transformer.h5'))  # 保存模型
