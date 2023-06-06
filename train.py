@@ -21,6 +21,10 @@ train_dataset = DataGenerator(tokenizer_data=(inp_seq, tar_seq), batch_size=conf
 # 定义模型
 transformer = Transformer(**config.model_params)
 
+# 检查是否存在已保存的权重文件，并加载权重
+if os.path.exists(os.path.join(config.BASE_MODEL_DIR, 'transformer_weights.h5')):
+    transformer.load_weights(os.path.join(config.BASE_MODEL_DIR, 'transformer_weights.h5'))
+
 # 定义优化器和损失函数
 optimizer = tf.keras.optimizers.Adam(**config.optimizer_params)
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -94,4 +98,7 @@ for epoch in range(EPOCHS):
     progress.write('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(
         epoch + 1, train_loss.result(), train_accuracy.result()))
     progress.write(f'Time taken for 1 epoch: {time.time() - start} secs\n')
-    transformer.save(os.path.join(config.BASE_MODEL_DIR, 'transformer.h5'))  # 保存模型
+
+    if not os.path.exists(config.BASE_MODEL_DIR):
+        os.makedirs(config.BASE_MODEL_DIR)
+    transformer.save_weights(os.path.join(config.BASE_MODEL_DIR, 'transformer.h5'))  # 保存模型

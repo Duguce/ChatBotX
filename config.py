@@ -16,7 +16,7 @@ vocab_size = 6346  # 词汇表大小
 
 n_epoch = 5  # 训练轮数
 batch_size = 128  # batch样本数
-d_model = 128  # 词嵌入的维度
+d_model = 512  # 词嵌入的维度
 
 # 模型参数
 model_params = {

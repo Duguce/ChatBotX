@@ -46,10 +46,10 @@ def generate_response(input_vector, transformer, word2idx, idx2word):
         predictions, _ = transformer(input_vector, output, False,
                                      enc_padding_mask, combined_mask, dec_padding_mask)
         # 模型参数恢复
-        transformer.load_weights(os.path.join(config.BASE_MODEL_DIR, 'transformer_weights.h5'))
+        transformer.load_weights(os.path.join(config.BASE_MODEL_DIR, 'transformer.h5'))
         predictions = predictions[:, -1, :]
         predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
-        if tf.equal(predicted_id, word2idx["<end>"]):
+        if tf.equal(predicted_id, word2idx["<end>"]) or tf.equal(predicted_id, word2idx["<pad>"]):
             break
         output = tf.concat([output, [predicted_id]], axis=-1)
     output = tf.squeeze(output, axis=0)
