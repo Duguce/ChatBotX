@@ -1,6 +1,6 @@
 # ChatBotX
 
-本项目是基于50w小黄鸡对话语料构建的Transformer生成式单轮对话模型。本项目受启发于另外一个使用seq2seq模型构建的单轮对话模型。（项目地址：https://github.com/Schellings/Seq2SeqModel）
+本项目是基于50w小黄鸡对话语料构建的Transformer生成式单轮对话模型。本项目受启发于另外一个使用seq2seq模型构建的[单轮对话模型](https://github.com/Schellings/Seq2SeqModel)。
 
 目前模型的效果相对一般（具体效果如下图所示），待进一步完善...
 
@@ -35,7 +35,7 @@
 - 下载项目文件
 - 安装相关的第三方库
 
-具体命令如下：
+具体步骤如下：
 
 ```
 git@github.com:Duguce/ChatBotX.git && cd ChatBotX
